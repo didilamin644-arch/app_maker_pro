@@ -1,105 +1,50 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
+import 'package:http/http.dart' as http;
 
-void main() => runApp(MaterialApp(
-      home: AlMasnaaFinalApp(),
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(),
-    ));
+void main() => runApp(MaterialApp(home: AlMasnaaRealEngine(), debugShowCheckedModeBanner: false));
 
-class AlMasnaaFinalApp extends StatefulWidget {
+class AlMasnaaRealEngine extends StatefulWidget {
   @override
-  _AlMasnaaFinalAppState createState() => _AlMasnaaFinalAppState();
+  _AlMasnaaRealEngineState createState() => _AlMasnaaRealEngineState();
 }
 
-class _AlMasnaaFinalAppState extends State<AlMasnaaFinalApp> {
-  final TextEditingController _promptController = TextEditingController();
-  List<String> _buildLogs = [];
-  bool _isBuilding = false;
-  double _progress = 0.0;
+class _AlMasnaaRealEngineState extends State<AlMasnaaRealEngine> {
+  final TextEditingController _tokenController = TextEditingController();
+  final TextEditingController _descController = TextEditingController();
 
-  final Map<String, String> _autoFixDB = {
-    "خطأ": "تم تفعيل نظام Self-Healing وإصلاح العطب البرمجي.",
-    "توقف": "تم حل مشكلة الذاكرة وتحسين الأداء آلياً.",
-    "واجهة": "تم ضبط أبعاد الواجهة لتناسب جميع أنواع الشاشات.",
-    "لعبة": "تم تجهيز محرك الرسوميات وتصحيح فيزياء التصادم.",
-  };
-
-  void _executeProduction() async {
-    if (_promptController.text.isEmpty) return;
-    setState(() {
-      _isBuilding = true;
-      _buildLogs.clear();
-      _progress = 0.1;
-      _buildLogs.add("⚙️ بدء محرك المصنع النهائي...");
-    });
-
-    await _step("🔍 تحليل الوصف واستخراج الأكواد...", 0.3, 2);
+  Future<void> _startProduction() async {
+    final token = _tokenController.text.trim();
+    // الرابط الحقيقي لإرسال أمر البناء لـ GitHub
+    final url = Uri.parse('https://api.github.com/repos/didilamin644-arch/app_maker_pro/dispatches');
     
-    String input = _promptController.text;
-    bool issuesFound = false;
-    _autoFixDB.forEach((key, fix) {
-      if (input.contains(key)) {
-        _buildLogs.add("⚠️ رصد مشكلة في [$key] -> جاري الإصلاح آلياً...");
-        _buildLogs.add("🛠️ $fix");
-        issuesFound = true;
-      }
-    });
-    
-    if (!issuesFound) _buildLogs.add("🛡️ لم يتم رصد أخطاء منطقية، الكود سليم.");
-    await _step("🏗️ بناء ملفات النظام...", 0.6, 2);
-    await _step("📦 حزم التطبيق النهائي APK...", 0.9, 2);
-    
-    setState(() {
-      _progress = 1.0;
-      _isBuilding = false;
-      _buildLogs.add("🎊 تم الإنتاج بنجاح! التطبيق جاهز.");
-    });
-  }
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/vnd.github.v3+json',
+      },
+      body: '{"event_type": "build_app", "client_payload": {"description": "${_descController.text}"}}',
+    );
 
-  Future<void> _step(String msg, double prog, int sec) async {
-    await Future.delayed(Duration(seconds: sec));
-    setState(() {
-      _buildLogs.add(msg);
-      _progress = prog;
-    });
+    if (response.statusCode == 204) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("✅ نجح الاتصال! بدأ المصنع بالعمل في GitHub")));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("❌ فشل: تأكد من صلاحيات التوكن (repo & workflow)")));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF0D1117),
-      appBar: AppBar(title: Text("المصنع - النسخة النهائية"), backgroundColor: Colors.blueAccent[700], centerTitle: true),
+      appBar: AppBar(title: Text("المصنع - المحرك الحقيقي")),
       body: Padding(
         padding: EdgeInsets.all(20),
         child: Column(
           children: [
-            TextField(
-              controller: _promptController,
-              maxLines: 4,
-              decoration: InputDecoration(hintText: "صف تطبيقك هنا...", filled: true, fillColor: Colors.white10, border: OutlineInputBorder(borderRadius: BorderRadius.circular(15))),
-            ),
+            TextField(controller: _tokenController, decoration: InputDecoration(labelText: "صق التوكن هنا")),
+            TextField(controller: _descController, decoration: InputDecoration(labelText: "وصف التطبيق")),
             SizedBox(height: 20),
-            if (_isBuilding) LinearProgressIndicator(value: _progress, color: Colors.blueAccent),
-            SizedBox(height: 20),
-            ElevatedButton.icon(
-              icon: Icon(Icons.rocket),
-              label: Text("بدء الإنتاج والتثبيت"),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green[600], minimumSize: Size(double.infinity, 55), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-              onPressed: _isBuilding ? null : _executeProduction,
-            ),
-            SizedBox(height: 20),
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(15),
-                decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.blueAccent.withOpacity(0.5))),
-                child: ListView.builder(
-                  itemCount: _buildLogs.length,
-                  itemBuilder: (context, index) => Text(_buildLogs[index], style: TextStyle(color: Colors.greenAccent, fontFamily: 'monospace', fontSize: 13)),
-                ),
-              ),
-            ),
+            ElevatedButton(onPressed: _startProduction, child: Text("تشغيل المصنع الآن")),
           ],
         ),
       ),
