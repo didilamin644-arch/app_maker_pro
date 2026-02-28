@@ -1,4 +1,4 @@
-name: Build and Release APK
+name: Build APK
 on:
   repository_dispatch:
     types: [build_app]
@@ -15,5 +15,7 @@ jobs:
           distribution: 'zulu'
           java-version: '12.x'
       - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.10.0'
       - run: flutter pub get
       - run: flutter build apk --release
